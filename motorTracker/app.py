@@ -4,6 +4,7 @@ from datetime import date
 from flask import Flask, jsonify, request, make_response,render_template
 from database.db import initialize_db
 from database.models import Driver, Battery, Station, Bike, Swap, Odometer
+from controllers import BatteryController, DriverController, StationController, BikeController, SwapController,Odometercontroller
 
 app = Flask(__name__)
 
@@ -18,57 +19,25 @@ def get_docs():
     print('sending docs')
     return render_template('swaggerui.html')
 
-@app.route("/driver/<bike_id>", methods=["POST"])
-def create_driver(bike_id):
-    driver = request.get_json()
-    new_driver = Driver(name=driver["name"], bike=bike_id).save()
-    return make_response(jsonify({"driver": json.loads(new_driver.to_json())})), 201
+
+@app.route("/driver/<bike_id>", methods=["POST"], view_func=DriverController.create_battery)
+@app.route("/drivers", methods=["GET"], view_func=DriverController.get_drivers)
+@app.route("/driver/driver_id", methods=["GET"], view_func=DriverController.get_one_drivers)
 
 
-@app.route("/drivers", methods=["GET"])
-def get_drivers():
-    drivers = Driver.objects().to_json()
-    return make_response(drivers), 200
+
+@app.route("/battery", methods=["POST"], view_func=BatteryController.create_battery)
+@app.route("/batteries", methods=["GET"],view_func=BatteryController.get_batteries)
 
 
-@app.route("/driver/driver_id", methods=["GET"])
-def get_one_drivers():
-    one_driver = Driver.objects().to_json()
-    return make_response(one_driver), 200
+@app.route("/station", methods=["POST"], view_func=StationController.create_station)
+@app.route("/stations", methods=["GET"],view_func=StationController.get_stations)
 
 
-@app.route("/battery", methods=["POST"])
-def create_battery():
-    battery = request.get_json()
-    Battery(**battery).save()
-    return make_response(jsonify(battery)), 201
 
+@app.route("/bike", methods=["POST"], view_func=BikeController.create_bike)
+@app.route("/bike/<bike_id>/day", methods=["GET"], view_func=BikeController.get_kilometers_done)
 
-@app.route("/batteries", methods=["GET"])
-def get_batteries():
-    batteries = Battery.objects().to_json()
-    return make_response(batteries), 200
-
-
-@app.route("/station", methods=["POST"])
-def create_station():
-    station = request.get_json()
-    Station(location=station["location"]).save()
-    return make_response(jsonify(station)), 201
-
-
-@app.route("/stations", methods=["GET"])
-def get_stations():
-    stations = Station.objects().to_json()
-    return make_response(stations), 200
-
-
-@app.route("/bike", methods=["POST"])
-def create_bike():
-    bike_obj = request.get_json()
-    bike = Bike(odometer_reading=bike_obj["odometer_reading"]).save()
-    return make_response(jsonify({"message": "successfully created bike",
-                                  "bike": json.loads(bike.to_json())})), 201
 
 
 @app.route("/swap/driver/<driver_id>/battery/<battery_id>/station/<station_id>", methods=["POST"])
@@ -109,14 +78,7 @@ def get_used_energy(driver_id, bike_id):
                                   "kilometers": json.loads(reading.to_json())})), 200
 
 
-@app.route("/bike/<bike_id>/day", methods=["GET"])
-def get_kilometers_done(bike_id):
-    reading = Odometer.objects(bike=bike_id, timestamp=date.today()).to_json()
-    reading_data = json.loads(reading)
-    km_done = 0
-    for i in reading_data:
-        km_done += i["current_reading"]-i["previous_reading"]
-    return make_response(jsonify({"kilometers": km_done})), 200
+
 
 
 @app.route("/swap/driver/<driver_id>", methods=["GET"])
